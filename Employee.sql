@@ -1,0 +1,180 @@
+CREATE DATABASE EMPLOYEE;
+USE EMPLOYEE;
+
+-- =========================
+-- TABLE CREATION
+-- =========================
+
+CREATE TABLE DEPT (
+    DEPTNO INT PRIMARY KEY,
+    DNAME VARCHAR(20),
+    DLOC VARCHAR(20)
+);
+
+CREATE TABLE EMPLOYEE (
+    EMPNO INT PRIMARY KEY,
+    ENAME VARCHAR(20),
+    MGR_NO INT,
+    HIREDATE DATE,
+    SAL INT,
+    DEPTNO INT,
+    FOREIGN KEY (DEPTNO) REFERENCES DEPT(DEPTNO),
+    FOREIGN KEY (MGR_NO) REFERENCES EMPLOYEE(EMPNO)
+);
+
+CREATE TABLE PROJECT (
+    PNO INT PRIMARY KEY,
+    PLOC VARCHAR(20),
+    PNAME VARCHAR(20)
+);
+
+CREATE TABLE ASSIGNED_TO (
+    EMPNO INT,
+    PNO INT,
+    JOB VARCHAR(20),
+    PRIMARY KEY (EMPNO, PNO),
+    FOREIGN KEY (EMPNO) REFERENCES EMPLOYEE(EMPNO),
+    FOREIGN KEY (PNO) REFERENCES PROJECT(PNO)
+);
+
+CREATE TABLE INCENTIVES (
+    EMPNO INT,
+    INCENTIVE_DATE DATE,
+    INCENTIVE_AMOUNT INT,
+    PRIMARY KEY (EMPNO, INCENTIVE_DATE),
+    FOREIGN KEY (EMPNO) REFERENCES EMPLOYEE(EMPNO)
+);
+
+-- =========================
+-- INSERT DATA
+-- =========================
+
+INSERT INTO DEPT VALUES
+(10,'Sales','Bengaluru'),
+(20,'Research','Hyderabad'),
+(30,'HR','Mysuru'),
+(40,'IT','Pune'),
+(50,'Finance','Delhi');
+
+INSERT INTO EMPLOYEE VALUES
+(101,'Kiran',NULL,'2015-01-10',90000,10),
+(102,'Raju',NULL,'2015-03-15',95000,20),
+(103,'Ravi',101,'2017-02-10',50000,10),
+(104,'Neha',101,'2017-04-12',60000,30),
+(108,'Omar',102,'2018-01-15',50000,30),
+(109,'Sara',102,'2018-05-20',55000,40),
+(110,'Dev',102,'2018-06-10',65000,10),
+(111,'Maya',103,'2018-07-12',45000,20),
+(105,'Arjun',102,'2019-01-10',30000,10),
+(106,'Vikram',103,'2019-02-10',35000,20),
+(107,'Priya',103,'2019-04-10',70000,10),
+(112,'Isha',108,'2020-01-10',80000,30),
+(113,'Zoya',109,'2020-02-10',30000,40),
+(114,'Ethan',109,'2021-03-10',35000,30),
+(115,'Rohan',103,'2021-03-10',35000,20);
+
+INSERT INTO PROJECT VALUES
+(201,'Bengaluru','Website'),
+(202,'Hyderabad','AI System'),
+(203,'Mysuru','Database'),
+(204,'Pune','Security'),
+(205,'Delhi','Banking'),
+(206,'Bengaluru','Mobile App');
+
+INSERT INTO ASSIGNED_TO VALUES
+(101,201,'Manager'),
+(102,203,'Developer'),
+(103,201,'Analyst'),
+(104,203,'Tester'),
+(105,204,'Developer'),
+(106,202,'Team Lead'),
+(107,201,'Developer'),
+(108,203,'HR Analyst'),
+(109,204,'Manager'),
+(110,205,'Designer'),
+(111,206,'Developer'),
+(112,205,'Manager'),
+(113,203,'Recruiter'),
+(114,204,'Developer'),
+(115,203,'Tester');
+
+INSERT INTO INCENTIVES VALUES
+(101,'2019-01-05',1000),
+(102,'2019-01-10',2000),
+(103,'2019-01-15',3000),
+(104,'2019-01-20',4000),
+(105,'2019-02-10',1500),
+(106,'2019-03-15',2500),
+(107,'2019-01-25',3000),
+(108,'2020-01-16',3500);
+
+-- =========================
+-- QUERIES
+-- =========================
+
+-- 1. Employees working on projects in Bengaluru,
+-- Hyderabad or Mysuru
+SELECT E.ENAME, P.PNAME, P.PLOC
+FROM EMPLOYEE E
+JOIN ASSIGNED_TO A ON E.EMPNO = A.EMPNO
+JOIN PROJECT P ON A.PNO = P.PNO
+WHERE P.PLOC IN ('Bengaluru','Hyderabad','Mysuru');
+
+-- 2. Employees who have not received incentives
+SELECT E.ENAME
+FROM EMPLOYEE E
+WHERE E.EMPNO NOT IN (
+    SELECT EMPNO
+    FROM INCENTIVES
+);
+
+-- 3. Employees working on projects located
+-- in their department location
+SELECT E.ENAME, D.DLOC, P.PLOC
+FROM EMPLOYEE E
+JOIN DEPT D ON E.DEPTNO = D.DEPTNO
+JOIN ASSIGNED_TO A ON E.EMPNO = A.EMPNO
+JOIN PROJECT P ON A.PNO = P.PNO
+WHERE D.DLOC = P.PLOC;
+
+-- 4. Manager managing maximum number of employees
+SELECT MGR_NO, COUNT(*) AS TOTAL_EMPLOYEES
+FROM EMPLOYEE
+WHERE MGR_NO IS NOT NULL
+GROUP BY MGR_NO
+ORDER BY TOTAL_EMPLOYEES DESC
+LIMIT 1;
+
+-- 5. Managers earning more than average salary
+SELECT DISTINCT M.ENAME, M.SAL
+FROM EMPLOYEE M
+JOIN EMPLOYEE E ON M.EMPNO = E.MGR_NO
+WHERE M.SAL > (
+    SELECT AVG(SAL)
+    FROM EMPLOYEE
+);
+
+-- 6. Find second-level managers
+SELECT DISTINCT M.ENAME
+FROM EMPLOYEE M
+JOIN EMPLOYEE E ON M.EMPNO = E.MGR_NO
+JOIN EMPLOYEE S ON E.EMPNO = S.MGR_NO;
+
+-- 7. Second-highest incentive amount in January 2019
+SELECT DISTINCT INCENTIVE_AMOUNT
+FROM INCENTIVES
+WHERE INCENTIVE_DATE BETWEEN '2019-01-01' AND '2019-01-31'
+ORDER BY INCENTIVE_AMOUNT DESC
+LIMIT 1 OFFSET 1;
+
+-- 8. Employees working in the same department as their manager
+SELECT E.ENAME
+FROM EMPLOYEE E
+JOIN EMPLOYEE M ON E.MGR_NO = M.EMPNO
+WHERE E.DEPTNO = M.DEPTNO;
+
+SELECT * FROM DEPT;
+SELECT * FROM EMPLOYEE;
+SELECT * FROM PROJECT;
+SELECT * FROM ASSIGNED_TO;
+SELECT * FROM INCENTIVES;

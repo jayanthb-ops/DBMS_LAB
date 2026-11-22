@@ -1,0 +1,169 @@
+CREATE DATABASE BANK;
+USE BANK;
+
+-- =========================
+-- TABLE CREATION
+-- =========================
+
+CREATE TABLE BRANCH (
+    BRANCH_NAME VARCHAR(30) PRIMARY KEY,
+    BRANCH_CITY VARCHAR(20),
+    ASSETS INT
+);
+
+CREATE TABLE BANKACCOUNT (
+    ACCNO INT PRIMARY KEY,
+    BRANCH_NAME VARCHAR(30),
+    BALANCE INT,
+    FOREIGN KEY (BRANCH_NAME) REFERENCES BRANCH(BRANCH_NAME)
+);
+
+CREATE TABLE BANKCUSTOMER (
+    CUSTOMER_NAME VARCHAR(30) PRIMARY KEY,
+    CUSTOMER_STREET VARCHAR(30),
+    CUSTOMER_CITY VARCHAR(20)
+);
+
+CREATE TABLE DEPOSITER (
+    CUSTOMER_NAME VARCHAR(30),
+    ACCNO INT,
+    PRIMARY KEY (CUSTOMER_NAME, ACCNO),
+    FOREIGN KEY (CUSTOMER_NAME) REFERENCES BANKCUSTOMER(CUSTOMER_NAME),
+    FOREIGN KEY (ACCNO) REFERENCES BANKACCOUNT(ACCNO)
+);
+
+CREATE TABLE LOAN (
+    LOAN_NUMBER INT PRIMARY KEY,
+    BRANCH_NAME VARCHAR(30),
+    AMOUNT INT,
+    FOREIGN KEY (BRANCH_NAME) REFERENCES BRANCH(BRANCH_NAME)
+);
+
+CREATE TABLE BORROWER (
+    CUSTOMER_NAME VARCHAR(30),
+    LOAN_NUMBER INT,
+    PRIMARY KEY (CUSTOMER_NAME, LOAN_NUMBER),
+    FOREIGN KEY (CUSTOMER_NAME) REFERENCES BANKCUSTOMER(CUSTOMER_NAME),
+    FOREIGN KEY (LOAN_NUMBER) REFERENCES LOAN(LOAN_NUMBER)
+);
+
+-- =========================
+-- INSERT DATA
+-- =========================
+
+INSERT INTO BRANCH VALUES
+('Bangalore','Bangalore',5000000),
+('Delhi','Delhi',7000000),
+('Mumbai','Mumbai',6000000),
+('Chennai','Chennai',4000000),
+('Mysore','Mysore',3000000);
+
+INSERT INTO BANKACCOUNT VALUES
+(101,'Bangalore',60000),
+(102,'Delhi',45000),
+(103,'Mumbai',80000),
+(104,'Chennai',30000),
+(105,'Mysore',90000);
+
+INSERT INTO BANKCUSTOMER VALUES
+('Anil','MG Road','Bangalore'),
+('Ravi','Main Road','Delhi'),
+('Suresh','Church Street','Mumbai'),
+('Kiran','Anna Street','Chennai'),
+('Manoj','Market Road','Mysore');
+
+INSERT INTO DEPOSITER VALUES
+('Anil',101),
+('Ravi',102),
+('Suresh',103),
+('Kiran',104),
+('Manoj',105);
+
+INSERT INTO LOAN VALUES
+(201,'Bangalore',100000),
+(202,'Delhi',200000),
+(203,'Mumbai',150000),
+(204,'Chennai',300000),
+(205,'Mysore',50000);
+
+INSERT INTO BORROWER VALUES
+('Anil',201),
+('Ravi',202),
+('Suresh',203),
+('Kiran',204),
+('Manoj',205);
+
+-- =========================
+-- QUERIES
+-- =========================
+
+-- 1. Display branch assets in lakhs
+SELECT BRANCH_NAME, ASSETS / 100000 AS ASSETS_IN_LAKHS
+FROM BRANCH;
+
+-- 2. Customers who have an account at a branch in Delhi
+SELECT DISTINCT D.CUSTOMER_NAME
+FROM DEPOSITER D
+JOIN BANKACCOUNT A ON D.ACCNO = A.ACCNO
+JOIN BRANCH B ON A.BRANCH_NAME = B.BRANCH_NAME
+WHERE B.BRANCH_CITY = 'Delhi';
+
+-- 3. Customers who have loans but no accounts
+SELECT DISTINCT B.CUSTOMER_NAME
+FROM BORROWER B
+WHERE B.CUSTOMER_NAME NOT IN (
+    SELECT CUSTOMER_NAME
+    FROM DEPOSITER
+);
+
+-- 4. Customers having both an account and a loan
+-- at branches in Bangalore
+SELECT DISTINCT D.CUSTOMER_NAME
+FROM DEPOSITER D
+JOIN BANKACCOUNT A ON D.ACCNO = A.ACCNO
+JOIN BRANCH BR ON A.BRANCH_NAME = BR.BRANCH_NAME
+JOIN BORROWER BO ON D.CUSTOMER_NAME = BO.CUSTOMER_NAME
+JOIN LOAN L ON BO.LOAN_NUMBER = L.LOAN_NUMBER
+WHERE BR.BRANCH_CITY = 'Bangalore'
+AND L.BRANCH_NAME = 'Bangalore';
+
+-- 5. Branches with assets greater than ALL branches in Mumbai
+SELECT BRANCH_NAME
+FROM BRANCH
+WHERE ASSETS > ALL (
+    SELECT ASSETS
+    FROM BRANCH
+    WHERE BRANCH_CITY = 'Mumbai'
+);
+
+-- 6. Delete accounts belonging to Mumbai branch
+
+DELETE FROM DEPOSITER
+WHERE ACCNO IN (
+    SELECT ACCNO
+    FROM BANKACCOUNT
+    WHERE BRANCH_NAME = 'Mumbai'
+);
+
+DELETE FROM BANKACCOUNT
+WHERE BRANCH_NAME = 'Mumbai';
+
+-- 7. Increase balance by 5% for accounts with balance above 50000
+UPDATE BANKACCOUNT
+SET BALANCE = BALANCE * 1.05
+WHERE BALANCE > 50000;
+
+-- 8. Create view showing total loan amount per branch
+CREATE VIEW BRANCH_LOAN_TOTAL AS
+SELECT BRANCH_NAME, SUM(AMOUNT) AS TOTAL_LOAN
+FROM LOAN
+GROUP BY BRANCH_NAME;
+
+SELECT * FROM BRANCH_LOAN_TOTAL;
+select * from BRANCH;
+select * from BANKACCOUNT;
+select * from BANKCUSTOMER;
+select * from DEPOSITER;
+select * from LOAN;
+select * from BRANCH;
+
